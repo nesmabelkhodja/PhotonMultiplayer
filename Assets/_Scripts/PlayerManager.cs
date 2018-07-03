@@ -110,14 +110,18 @@ namespace Com.MyCompany.MyGame
         /// </summary>
         void Update()
         {
-            ProcessInputs();
-            //Debug.Log("yay");
+            if (GetComponent<NetworkView>().isMine)
+            {
+                ProcessInputs();
+            }
+
 
             // trigger Beams active state 
             if (Beams != null && IsFiring != Beams.GetActive())
             {
                 Beams.SetActive(IsFiring);
             }
+
         }
 
         #if !UNITY_MIN_5_4
@@ -167,17 +171,17 @@ namespace Com.MyCompany.MyGame
             }
 
             if (Input.GetKey(KeyCode.W))
-                Debug.Log("wwww");
-                rigidbody1.MovePosition(rigidbody1.position + transform.forward * Time.deltaTime);
-            
+            {
+                gameObject.transform.position = gameObject.transform.position + new Vector3(0f, 0f, 1f) * Time.deltaTime;
+            }
             if (Input.GetKey(KeyCode.S))
-                GetComponent<Rigidbody>().MovePosition(GetComponent<Rigidbody>().position - Vector3.forward * speed * Time.deltaTime);
+                gameObject.transform.position = gameObject.transform.position - new Vector3(0f, 0f, 1f) * Time.deltaTime;
 
             if (Input.GetKey(KeyCode.D))
-                GetComponent<Rigidbody>().MovePosition(GetComponent<Rigidbody>().position + Vector3.right * speed * Time.deltaTime);
+                gameObject.transform.position = gameObject.transform.position + new Vector3(1f, 0f, 0f) * Time.deltaTime;
 
             if (Input.GetKey(KeyCode.A))
-                GetComponent<Rigidbody>().MovePosition(GetComponent<Rigidbody>().position - Vector3.right * speed * Time.deltaTime);
+                gameObject.transform.position = gameObject.transform.position - new Vector3(1f, 0f, 0f) * Time.deltaTime;
         }
         #endregion
 

@@ -14,10 +14,66 @@ public class NetworkManager : MonoBehaviour {
         Debug.Log("started server");
     }
 
-    
+    private float lastSynchronizationTime = 0f;
+    private float syncDelay = 0f;
+    private float syncTime = 0f;
+    private Vector3 syncStartPosition = Vector3.zero;
+    private Vector3 syncEndPosition = Vector3.zero;
+
+    void OnSerializeNetworkView(BitStream stream, NetworkMessageInfo info)
+    {  
+        Vector3 syncPosition = Vector3.zero;
+        if (stream.isWriting)
+        {
+            syncPosition = GetComponent<Rigidbody>().position;
+            stream.Serialize(ref syncPosition);
+        }
+        else
+        {
+            stream.Serialize(ref syncPosition);
+
+            syncTime = 0f;
+            syncDelay = Time.time - lastSynchronizationTime;
+            lastSynchronizationTime = Time.time;
+
+            syncStartPosition = GetComponent<Rigidbody>().position;
+            syncEndPosition = syncPosition;
+        }
+    }
+
     void OnServerInitialized()
     {
         Debug.Log("Server Initializied");
+        SpawnPlayer();
+    }
+
+    private HostData[] hostList;
+
+    private void RefreshHostList()
+    {
+        MasterServer.RequestHostList(typeName);
+    }
+
+    void OnMasterServerEvent(MasterServerEvent msEvent)
+    {
+        if (msEvent == MasterServerEvent.HostListReceived)
+            hostList = MasterServer.PollHostList();
+    }
+
+    private void JoinServer(HostData hostData)
+    {
+        Network.Connect(hostData);
+    }
+
+    void OnConnectedToServer()
+    {
+        Debug.Log("Server Joined");
+        SpawnPlayer();
+    }
+
+    private void SpawnPlayer()
+    {
+        Network.Instantiate(playerPrefab, new Vector3(0f, 5f, 0f), Quaternion.identity, 0);
     }
 
     public GameObject playerPrefab;
@@ -39,7 +95,6 @@ public class NetworkManager : MonoBehaviour {
 
     void OnGUI()
     {
-        //Debug.Log("cmon");
         if (!PhotonNetwork.connected)
         {
             GUILayout.Label(PhotonNetwork.connectionStateDetailed.ToString());
@@ -57,6 +112,23 @@ public class NetworkManager : MonoBehaviour {
             {
                     if (GUI.Button(new Rect(100, 250 + (110 * i), 250, 100), "Join " + roomsList[i].name))
                         PhotonNetwork.JoinRoom(roomsList[i].name);
+                }
+            }
+        }
+        if (!Network.isClient && !Network.isServer)
+        {
+            if (GUI.Button(new Rect(100, 100, 250, 100), "Start Server"))
+                StartServer();
+
+            if (GUI.Button(new Rect(100, 250, 250, 100), "Refresh Hosts"))
+                RefreshHostList();
+
+            if (hostList != null)
+            {
+                for (int i = 0; i < hostList.Length; i++)
+                {
+                    if (GUI.Button(new Rect(400, 100 + (110 * i), 300, 100), hostList[i].gameName))
+                        JoinServer(hostList[i]);
                 }
             }
         }
